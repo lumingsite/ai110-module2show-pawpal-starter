@@ -70,16 +70,34 @@ Skipped tasks:
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov
 ```
 
-Sample test output:
+Tests live in `tests/test_pawpal.py` and cover core scheduling behaviors — sorting (chronological time order, unscheduled tasks last), recurrence (completing a daily/weekly task spawns the next occurrence), and conflict detection (overlapping fixed-time tasks across pets) — plus basic `Task`/`Pet` state changes:
+
+| Test | What it verifies |
+|------|-------------------|
+| `test_mark_complete_changes_status` | `Task.mark_complete()` flips `is_completed`. |
+| `test_add_task_increases_count` | `Pet.add_task()` appends to `Pet.tasks`. |
+| `test_sort_by_time_returns_chronological_order` | `Scheduler.sort_by_time()` orders tasks by `"HH:MM"` string, with unscheduled tasks (`time=""`) sorted last. |
+| `test_complete_daily_task_creates_next_day_task` | `Pet.complete_task()` marks a `"daily"` task done and auto-spawns its next occurrence one day later, incomplete. |
+| `test_detect_conflicts_flags_duplicate_times` | `Scheduler.detect_conflicts()` flags overlapping fixed-time tasks across *different* pets (one owner, one clock). |
+
+Sample test output (`python -m pytest`):
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/yingfei/codepath/ai 110/ai110-module2show-pawpal-starter
+plugins: anyio-4.14.1
+collected 5 items
+
+tests/test_pawpal.py .....                                               [100%]
+
+============================== 5 passed in 0.04s ===============================
 ```
 
 ## 📐 Smarter Scheduling

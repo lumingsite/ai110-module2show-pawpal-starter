@@ -68,10 +68,32 @@ A related, smaller tradeoff: `detect_conflicts` only flags overlaps between task
 - What behaviors did you test?
 - Why were these tests important?
 
+Added three tests to `tests/test_pawpal.py` beyond the starter's basic `mark_complete`/`add_task` checks:
+
+- **Sorting correctness (`test_sort_by_time_returns_chronological_order`)** — adds four tasks out of order (18:00, 08:00, unscheduled, 12:30) and asserts `Scheduler.sort_by_time()` returns them chronologically, with the unscheduled task sorted last. This matters because `time` is stored as a zero-padded `"HH:MM"` string and sorted lexicographically rather than parsed into `int`/`datetime` — a subtle implementation detail that's easy to break by accident (e.g. removing the zero-padding assumption) without a test catching it.
+
+- **Recurrence logic (`test_complete_daily_task_creates_next_day_task`)** — completes a `daily` task pinned to a fixed `due_date` and checks the original is marked done, the spawned copy is incomplete, its `due_date` advanced by exactly one day, and it was appended into `pet.tasks`. This is important because `complete_task()` combines two responsibilities (marking done + auto-spawning the next occurrence) — a regression in either one would silently break recurring care tasks like daily feeding.
+
+- **Conflict detection (`test_detect_conflicts_flags_duplicate_times`)** — two different pets each get a task at the same `"09:00"` time and the test asserts `detect_conflicts()` returns exactly one warning naming both tasks. This is important because conflicts are checked *across* pets (one owner can't do two things at once), not just within a single pet's task list — an easy scope mistake to introduce during refactors.
+
+All three pass alongside the original two starter tests (5/5 via `pytest`).
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+**Confidence Level: ⭐⭐⭐☆☆ (3/5)**
+
+The 5 passing tests cover the core happy paths (sorting, recurrence, conflict detection, basic state changes), so I'm confident the main pipeline works as documented. But coverage is thin on edge cases, so I'm not fully confident yet:
+
+- Boundary cases in `detect_conflicts()` — exact time equality (`start == holder_end`), zero-duration tasks.
+- `filter_by_time()` skip-reason branching — "exceeds total available time" vs "not enough remaining time" aren't both asserted.
+- `remove_task()` after recurrence — duplicate task names (completed original + spawned next occurrence) could cause `remove_task()` to delete both instead of one.
+- `generate_schedule()` caching/`reset()` — no test confirms the cache actually goes stale-then-rebuilds correctly.
+- `Task.__post_init__` validation — invalid `time`/`priority`/`frequency` raising `ValueError` isn't tested.
+
+With those added I'd put confidence at 4–5/5.
 
 ---
 
