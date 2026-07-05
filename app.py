@@ -43,19 +43,29 @@ if st.session_state.owner:
     with col3:
         priority = st.selectbox("Priority", ["high", "medium", "low"])
 
-    category = st.text_input("Category (e.g. walk, feeding, grooming)", value="walk")
-    is_recurring = st.checkbox("Recurring daily?")
+    col4, col5 = st.columns(2)
+    with col4:
+        category = st.text_input("Category (e.g. walk, feeding, grooming)", value="walk")
+    with col5:
+        frequency = st.selectbox("Repeats", ["once", "daily", "weekly"])
+
+    fixed_time = st.text_input("Fixed time, optional (HH:MM, 24hr)", value="")
 
     if st.button("Add Task"):
-        task = Task(
-            name=task_name,
-            category=category,
-            duration_min=int(duration),
-            priority=priority,
-            is_recurring=is_recurring,
-        )
-        pet.add_task(task)
-        st.success(f"Added: {task_name}")
+        try:
+            task = Task(
+                name=task_name,
+                category=category,
+                duration_min=int(duration),
+                priority=priority,
+                frequency=frequency,
+                is_recurring=frequency != "once",
+                time=fixed_time,
+            )
+            pet.add_task(task)
+            st.success(f"Added: {task_name}")
+        except ValueError as e:
+            st.error(str(e))
 
     if pet.tasks:
         st.write(f"Tasks for {pet.name}:")
@@ -65,6 +75,8 @@ if st.session_state.owner:
                 "Category": t.category,
                 "Duration (min)": t.duration_min,
                 "Priority": t.priority,
+                "Time": t.time or "—",
+                "Repeats": t.frequency,
                 "Done": t.is_completed,
             }
             for t in pet.tasks
@@ -81,6 +93,33 @@ if st.session_state.owner:
             st.warning("No pending tasks to schedule. Add tasks above.")
         else:
             scheduler = Scheduler(owner)
-            st.text(scheduler.explain())
+
+            conflicts = scheduler.detect_conflicts()
+            if conflicts:
+                st.markdown("**⚠️ Schedule Conflicts**")
+                for warning in conflicts:
+                    st.warning(warning)
+            else:
+                st.success("No conflicts — all fixed-time tasks fit ✅")
+
+            plan = scheduler.generate_schedule()
+            if plan:
+                st.markdown("**📅 Today's Plan** (sorted by priority)")
+                st.table([
+                    {
+                        "Time": f"{item['start_min'] // 60:02d}:{item['start_min'] % 60:02d}",
+                        "Pet": item["pet"].name,
+                        "Task": item["task"].name,
+                        "Duration (min)": item["task"].duration_min,
+                        "Priority": item["task"].priority,
+                    }
+                    for item in plan
+                ])
+
+            _, skipped = scheduler.filter_by_time(scheduler.sort_by_priority())
+            if skipped:
+                st.markdown("**⏭️ Skipped Tasks**")
+                for pet_, task_, reason in skipped:
+                    st.warning(f"[{pet_.name}] {task_.name}: {reason}")
 else:
     st.info("Fill in the profile above to get started.")

@@ -12,6 +12,15 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## ✨ Features
+
+- **Priority-based scheduling** — packs today's plan high→medium→low priority within the owner's available minutes (`Scheduler.sort_by_priority()`, `generate_schedule()`).
+- **Sorting by time** — view all pending tasks in chronological order, unscheduled tasks sorted last (`Scheduler.sort_by_time()`).
+- **Conflict warnings** — flags overlapping fixed-time tasks, even across different pets (`Scheduler.detect_conflicts()`).
+- **Daily/weekly recurrence** — completing a recurring task auto-spawns its next occurrence with the due date advanced (`Task.next_occurrence()`, `Pet.complete_task()`); one-off tasks don't respawn.
+- **Filtering** — narrow tasks by pet and/or completion status, independently or combined (`Scheduler.filter_tasks()`).
+- **Skip explanations** — tasks that don't fit today are skipped with a specific reason ("exceeds total available time" vs. "not enough remaining time") instead of silently dropped.
+
 ## What you will build
 
 Your final app should:
@@ -113,12 +122,80 @@ tests/test_pawpal.py .....                                               [100%]
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app (`app.py`) walks through three steps:
+
+1. **Set Up Profile** — enter owner name, daily available minutes, and one pet's name/breed/age/special needs.
+2. **Add Tasks** — for each task: name, category, duration, priority (high/medium/low), repeat frequency (once/daily/weekly), and an optional fixed time (`HH:MM`). Tasks appear in a running table; invalid input (bad time format, etc.) surfaces as an inline error.
+3. **Generate Schedule** — builds today's plan and shows, in order: any conflict warnings, the sorted plan table, and any skipped tasks with reasons.
+
+### Example workflow
+
+1. Add owner "Alex" with 60 available minutes and pet "Biscuit."
+2. Add tasks: "Morning Walk" (30 min, high, daily, 07:00), "Feeding" (10 min, high, daily, 12:00), "Grooming" (20 min, low, weekly, 18:00).
+3. Click **Generate Schedule** — the app packs Morning Walk and Feeding into the 60-minute budget by priority, and skips Grooming with "not enough remaining time."
+4. Add a "Brushing" task at 07:15 (overlaps Morning Walk's 07:00–07:30 slot) and regenerate — a conflict warning appears naming both tasks and their times.
+5. Mark "Morning Walk" complete (via `Pet.complete_task()` in the backend) — a new "Morning Walk" instance is auto-spawned due the next day, since it's a `daily` task.
+
+### Key Scheduler behaviors shown
+
+- **Sorting** — `sort_by_priority()` orders the plan high→medium→low; `sort_by_time()` orders any task list chronologically by `HH:MM`, unscheduled tasks last.
+- **Conflict warnings** — `detect_conflicts()` catches the Morning Walk / Brushing overlap above, even though they belong to the same pet, and would also catch overlaps across two different pets (one owner can't be in two places at once).
+- **Recurrence** — completing a `daily`/`weekly` task spawns its next occurrence automatically; `once` tasks (like a one-time vet visit) never respawn.
+- **Skip reasons** — a task longer than the entire daily budget is skipped as "exceeds total available time"; a task that would fit some days but not after higher-priority tasks ate the budget is skipped as "not enough remaining time."
+
+### Sample CLI output (`python main.py`)
+
+`main.py` exercises the same backend logic outside Streamlit — two pets, priority scheduling, sorting, a deliberate time conflict, recurrence, and filtering:
+
+```
+Daily plan for Alex:
+  00:00 — [Biscuit] Morning Walk (30 min) [priority: high]
+  00:30 — [Biscuit] Feeding (10 min) [priority: high]
+  00:40 — [Mochi] Playtime (15 min) [priority: medium]
+
+Skipped tasks:
+  - [Mochi] Vet Checkup: exceeds total available time
+  - [Biscuit] Grooming: not enough remaining time
+
+--- All pending tasks sorted by time ---
+  07:00  [Biscuit] Morning Walk
+  08:00  [Mochi] Playtime
+  12:00  [Biscuit] Feeding
+  14:30  [Mochi] Vet Checkup
+  18:00  [Biscuit] Grooming
+
+--- Conflict check ---
+  ⚠ Conflict: [Biscuit] Morning Walk (07:00) overlaps [Biscuit] Brushing (07:15)
+
+--- After completing Morning Walk ---
+Daily plan for Alex:
+  00:00 — [Biscuit] Feeding (10 min) [priority: high]
+  00:10 — [Biscuit] Morning Walk (30 min) [priority: high]
+  00:40 — [Mochi] Playtime (15 min) [priority: medium]
+
+Skipped tasks:
+  - [Mochi] Vet Checkup: exceeds total available time
+  - [Biscuit] Grooming: not enough remaining time
+  - [Biscuit] Brushing: not enough remaining time
+
+Auto-spawned recurrence: Morning Walk due 2026-07-06 (frequency=daily)
+Vet Checkup respawned? False  (expected: False, frequency='once')
+
+--- Filter: only Biscuit's tasks ---
+  [Biscuit] Grooming (done=False)
+  [Biscuit] Morning Walk (done=True)
+  [Biscuit] Feeding (done=False)
+  [Biscuit] Brushing (done=False)
+  [Biscuit] Morning Walk (done=False)
+
+--- Filter: only completed tasks ---
+  [Biscuit] Morning Walk
+  [Mochi] Vet Checkup
+
+--- Filter: Mochi's pending tasks ---
+  [Mochi] Playtime
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

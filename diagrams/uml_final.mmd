@@ -1,0 +1,59 @@
+classDiagram
+    %% Reflects the final implementation in pawpal_system.py
+
+    class Task {
+        +str name
+        +str category
+        +int duration_min
+        +str description
+        +str priority
+        +str frequency
+        +bool is_recurring
+        +bool is_completed
+        +str time
+        +date due_date
+        +mark_complete() None
+        +reset() None
+        +next_occurrence() Task|None
+    }
+
+    class Pet {
+        +str name
+        +str breed
+        +int age
+        +str special_needs
+        +list~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(task_name: str) None
+        +get_pending_tasks() list~Task~
+        +complete_task(task_name: str) Task|None
+    }
+
+    class Owner {
+        +str name
+        +int available_minutes
+        +dict~str, Pet~ pets
+        +add_pet(pet: Pet) None
+        +get_pet(pet_name: str) Pet|None
+        +remove_pet(pet_name: str) None
+        +get_all_tasks(include_completed: bool) list~tuple~
+    }
+
+    class Scheduler {
+        +Owner owner
+        -list~dict~ _schedule
+        -list~tuple~ _skipped
+        +sort_by_priority() list~tuple~
+        +sort_by_time() list~tuple~
+        +detect_conflicts() list~str~
+        +filter_tasks(pet_name: str, completed: bool) list~tuple~
+        +filter_by_time(pet_tasks: list~tuple~) tuple
+        +generate_schedule() list~dict~
+        +explain() str
+        +reset() None
+    }
+
+    Owner "1" *-- "many" Pet : owns (dict keyed by name)
+    Pet "1" *-- "many" Task : has
+    Scheduler "1" --> "1" Owner : schedules
+    Task "1" ..> "0..1" Task : next_occurrence() spawns
