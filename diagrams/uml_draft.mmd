@@ -1,0 +1,39 @@
+classDiagram
+    %% Keep this file updated so it matches your final implementation.
+
+    class Owner {
+        +str name
+        +int available_minutes
+        +Pet pet
+        +list~Task~ tasks
+        +add_task(task: Task) None
+        +remove_task(task_name: str) None
+    }
+
+    class Pet {
+        +str name
+        +str breed
+        +int age
+        +str special_needs
+    }
+
+    class Task {
+        +str name
+        +str category
+        +int duration_min
+        +str priority
+        +bool is_recurring
+    }
+
+    class Scheduler {
+        +list~Task~ tasks
+        +int available_minutes
+        +generate_schedule() list
+        +sort_by_priority() list
+        +filter_by_time() list
+        +explain() str
+    }
+
+    Owner "1" --> "1" Pet : owns
+    Owner "1" --> "many" Task : manages
+    Scheduler --> Owner : receives

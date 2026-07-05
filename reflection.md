@@ -4,10 +4,28 @@
 
 **a. Initial design**
 
+Three core user actions:
+1. A user can set up their profile by entering their name, their pet's name and breed, and how much time they have available each day.
+2. A user can add or edit care tasks for their pet, such as walks, feeding, medication, or grooming, and specify how long each task takes and how important it is.
+3. A user can generate a daily care plan that automatically schedules tasks based on their priorities and time constraints, and see an explanation of why the plan was arranged that way.
+
+My initial design has four classes:
+
+- **Owner** — holds the user's name and how many minutes per day they have available for pet care. An Owner has exactly one Pet and a list of Tasks.
+- **Pet** — holds the pet's name, breed, age, and any special needs.
+- **Task** — represents a single care activity (walk, feeding, meds, grooming, etc.). It stores the task name, category, how long it takes in minutes, its priority level (high/medium/low), and whether it recurs daily.
+- **Scheduler** — the core logic class. It receives the Owner's available time and their list of Tasks, then sorts tasks by priority, filters out tasks that won't fit in the remaining time, assigns start times, and returns an ordered schedule with a plain-language explanation of why the plan was arranged the way it was. It also handles two edge cases internally: (1) if total task time exceeds available time, it drops the lowest-priority tasks and notes what was skipped; (2) if a single task is longer than the total available time, it warns the user and skips that task.
+
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
 **b. Design changes**
+
+Yes, the design changed after reviewing the initial skeleton.
+
+The most significant change was adding cached state to `Scheduler`. The original design had `explain()` as a standalone method with no stored data, which would have forced it to re-run the entire sort-filter-schedule pipeline every time it was called. To fix this, `Scheduler` now stores `_schedule` and `_skipped` after the first call to `generate_schedule()`, so `explain()` can reuse those results without recomputing.
+
+A smaller change was adding `__post_init__` validation to `Task`. The original skeleton accepted any string for `priority`, which would allow silent bugs if an invalid value like `"urgent"` was passed. The validation now raises a `ValueError` immediately if the priority is not `"high"`, `"medium"`, or `"low"`, making the error obvious at the point of creation rather than at scheduling time.
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
