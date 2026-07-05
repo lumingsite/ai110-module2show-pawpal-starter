@@ -41,8 +41,9 @@ A smaller change was adding `__post_init__` validation to `Task`. The original s
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+`filter_by_time` fills the day strictly in priority order (high → medium → low), not by optimal packing. If a 55-minute high-priority task and a 60-minute budget leave 5 minutes free, three quick 5-minute low-priority tasks that would've collectively fit better get skipped rather than displacing the high-priority one — a knapsack-style packer maximizing total tasks scheduled would sometimes reorder that. I chose strict-priority-order instead, because for a pet owner "why did the schedule drop my dog's vet-adjacent task and keep grooming?" is a worse experience than "you didn't have enough time for the low-priority stuff today" — priority order is predictable and matches what the owner explicitly told the app mattered most, even when it isn't the mathematically densest packing of the available minutes.
+
+A related, smaller tradeoff: `detect_conflicts` only flags overlaps between tasks that have an explicit fixed `time` (e.g., a vet appointment at `14:30`). Tasks without a set time are treated as flexible and never checked against each other for overlap, since the scheduler is free to place them anywhere in sequence. This keeps conflict detection cheap (one sort + linear sweep over just the timed subset) and avoids false-positive warnings on tasks that were never meant to happen at a specific clock time.
 
 ---
 

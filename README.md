@@ -84,14 +84,14 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_priority()`, `Scheduler.sort_by_time()` | `sort_by_priority()` orders pending tasks high→low. `sort_by_time()` orders by the optional `Task.time` ("HH:MM"); unscheduled tasks sort last. O(n log n), string-key sort — no datetime parsing needed since times are zero-padded. |
+| Filtering | `Scheduler.filter_tasks(pet_name=None, completed=None)` | Filters the full task set (pending + completed) by optional pet name and/or completion status, combinable (e.g. "Mochi's pending tasks"). `Owner.get_all_tasks(include_completed=False)` backs it. |
+| Conflict handling | `Scheduler.detect_conflicts()` | Flags overlapping fixed-time tasks (across pets too — one owner, one clock). Lightweight interval-overlap sweep: sort by start time, track the latest-ending task seen so far, flag any task starting before it ends. O(n log n), never crashes — returns a list of warning strings (empty if none). |
+| Recurring tasks | `Task.next_occurrence()`, `Pet.complete_task(task_name)` | Completing a `"daily"`/`"weekly"` task auto-spawns its next occurrence (`due_date` advanced via `timedelta`) and appends it to the pet's task list; `"once"` tasks don't respawn. `Pet.complete_task()` is the entry point — it marks the task done and wires the spawn in one call. |
+
+**Design note:** `Owner.pets` is a `dict[str, Pet]` keyed by name for O(1) add/remove/lookup. `Pet.tasks` stays a `list[Task]` on purpose — recurring tasks intentionally produce duplicate names (a completed task and its freshly spawned next occurrence share a name), so a dict keyed by name would silently drop one.
 
 ## 📸 Demo Walkthrough
 
